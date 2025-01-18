@@ -62,14 +62,14 @@ def load_prompts(prompt_file):
         f.close()
     return prompt_list
 
-def load_data_prompts(data_dir, video_size=(256,256), video_frames=16, interp=False):
+def load_data_prompts(prompt_path, video_size=(256,256), video_frames=16, interp=False):
     transform = transforms.Compose([
         transforms.Resize(min(video_size)),
         transforms.CenterCrop(video_size),
         transforms.ToTensor(),
         transforms.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))])
     ## load prompts
-    prompt_file = get_filelist(data_dir, ['txt'])
+    prompt_file = prompt_path
     assert len(prompt_file) > 0, "Error: found NO prompt file!"
     ###### default prompt
     default_idx = 0
@@ -79,11 +79,22 @@ def load_data_prompts(data_dir, video_size=(256,256), video_frames=16, interp=Fa
     ## only use the first one (sorted by name) if multiple exist
     
     ## load video
-    file_list = get_filelist(data_dir, ['jpg', 'png', 'jpeg', 'JPEG', 'PNG'])
+    # file_list = get_filelist(data_dir, ['jpg', 'png', 'jpeg', 'JPEG', 'PNG'])
+    
+    # NOTE: We have to change this to a specific path based on the txt prompt
+    # Prompt looks like Orange ping-pong ball falling down and making impact with the table surface below.@@/home/${USER}/VGMs/prompts/reference_images/falling_ball/video_0/frame_160.png
+    # Where the part after @@ is the path to the image and the first part is the prompt
+    
+    # Load the prompts from the txt file
+    prompt_list = load_prompts(prompt_file[default_idx])
+    
+    # Get the actual prompt and the image path
+    prompt_list = [prompt.split('@@')[0] for prompt in prompt_list]
+    file_list = [prompt.split('@@')[1] for prompt in prompt_list]
+    
     # assert len(file_list) == n_samples, "Error: data and prompts are NOT paired!"
     data_list = []
     filename_list = []
-    prompt_list = load_prompts(prompt_file[default_idx])
     n_samples = len(prompt_list)
     for idx in range(n_samples):
         if interp:
@@ -281,8 +292,10 @@ def run_inference(args, gpu_num, gpu_no):
     os.makedirs(fakedir_separate, exist_ok=True)
 
     ## prompt file setting
-    assert os.path.exists(args.prompt_dir), "Error: prompt file Not Found!"
-    filename_list, data_list, prompt_list = load_data_prompts(args.prompt_dir, video_size=(args.height, args.width), video_frames=n_frames, interp=args.interp)
+    # NOTE: prompt dir is for example prompts/512 and there we have a txt and image. We actually dont have the image there so we have to redirect this
+    
+    assert os.path.exists(args.prompt_path), "Error: prompt file Not Found!"
+    filename_list, data_list, prompt_list = load_data_prompts(args.prompt_path, video_size=(args.height, args.width), video_frames=n_frames, interp=args.interp)
     num_samples = len(prompt_list)
     samples_split = num_samples // gpu_num
     print('Prompts testing [rank:%d] %d/%d samples loaded.'%(gpu_no, samples_split, num_samples))
@@ -322,7 +335,7 @@ def get_parser():
     parser.add_argument("--savedir", type=str, default=None, help="results saving path")
     parser.add_argument("--ckpt_path", type=str, default=None, help="checkpoint path")
     parser.add_argument("--config", type=str, help="config (yaml) path")
-    parser.add_argument("--prompt_dir", type=str, default=None, help="a data dir containing videos and prompts")
+    parser.add_argument("--prompt_path", type=str, default=None, help="a data dir containing videos and prompts")
     parser.add_argument("--n_samples", type=int, default=1, help="num of samples per prompt",)
     parser.add_argument("--ddim_steps", type=int, default=50, help="steps of ddim if positive, otherwise use DDPM",)
     parser.add_argument("--ddim_eta", type=float, default=1.0, help="eta for ddim sampling (0.0 yields deterministic sampling)",)
@@ -352,6 +365,14 @@ if __name__ == '__main__':
     print("@DynamiCrafter cond-Inference: %s"%now)
     parser = get_parser()
     args = parser.parse_args()
+    
+    
+    # TODO:
+    # The prompt dir directs to a directory with a txt file with prompts and an image
+    # We have to overwrite the image path to the end of the txt prompt
+    # We have to overwrite the prompt itself to the first part of the txt line
+    
+    
 
     seed = args.seed
     if seed < 0:
