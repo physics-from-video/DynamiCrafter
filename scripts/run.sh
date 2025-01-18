@@ -1,9 +1,14 @@
 version=$RESOLUTION ##1024, 512, 256
 seed=$SEED
-name=dynamicrafter_$RESOLUTION_seed${seed}
+name=dynamicrafter_${version}_seed${seed}
 
-ckpt=checkpoints/dynamicrafter_$RESOLUTION_v1/model.ckpt
-config=configs/inference_$RESOLUTION_v1.0.yaml
+
+# /scratch-shared/$USER/weights/DynamiCrafter_512/model.ckpt
+ckpt=/scratch-shared/$USER/weights/DynamiCrafter_${version}/model.ckpt
+
+# print the ckpt path
+echo $ckpt
+config=configs/inference_${version}_v1.0.yaml
 
 prompt_path=$PROMPT_PATH
 res_dir=$OUTPUT_PATH
