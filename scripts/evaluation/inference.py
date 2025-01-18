@@ -72,10 +72,10 @@ def load_data_prompts(prompt_path, video_size=(256,256), video_frames=16, interp
     prompt_file = prompt_path
     assert len(prompt_file) > 0, "Error: found NO prompt file!"
     ###### default prompt
-    default_idx = 0
-    default_idx = min(default_idx, len(prompt_file)-1)
-    if len(prompt_file) > 1:
-        print(f"Warning: multiple prompt files exist. The one {os.path.split(prompt_file[default_idx])[1]} is used.")
+    default_idx = 0  # we only use the first line of the prompt file
+    # default_idx = min(default_idx, len(prompt_file)-1)
+    # if len(prompt_file) > 1:
+    #     print(f"Warning: multiple prompt files exist. The one {os.path.split(prompt_file[default_idx])[1]} is used.")
     ## only use the first one (sorted by name) if multiple exist
     
     ## load video
@@ -85,13 +85,18 @@ def load_data_prompts(prompt_path, video_size=(256,256), video_frames=16, interp
     # Prompt looks like Orange ping-pong ball falling down and making impact with the table surface below.@@/home/${USER}/VGMs/prompts/reference_images/falling_ball/video_0/frame_160.png
     # Where the part after @@ is the path to the image and the first part is the prompt
     
-    # Load the prompts from the txt file
-    prompt_list = load_prompts(prompt_file[default_idx])
+    with open(args.prompt_path, "r") as file:
+        content = file.read().strip()
+        prompt, img_path = content.split("@@")
+        user_prompt = prompt.strip()
+        first_frame = os.path.expandvars(img_path.strip())
     
-    # Get the actual prompt and the image path
-    prompt_list = [prompt.split('@@')[0] for prompt in prompt_list]
-    file_list = [prompt.split('@@')[1] for prompt in prompt_list]
     
+    prompt_list = [user_prompt]
+    file_list = [first_frame]
+    
+    print(f"Prompt: {user_prompt}")
+    print(f"Image path: {first_frame}")
     # assert len(file_list) == n_samples, "Error: data and prompts are NOT paired!"
     data_list = []
     filename_list = []
